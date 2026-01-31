@@ -6537,4 +6537,120 @@ const routes: Routes = [
 ✅ Cookies در همه سناریوها
 ✅ Headers در هر نوع API
 
-اگه سوال دیگه‌ای داری یا نیاز به توضیح بیشتر داری، حتما بگو! 💪
+## بخش ۱: مقدمه به APIها و HTTP
+- **API چی هست؟** Application Programming Interface – رابطی برای ارتباط نرم‌افزارها. مثلاً اپ فرانت‌اند با بک‌اند حرف می‌زنه. بیشتر APIهای وب بر پایه HTTP هستن.
+- **HTTP چیه؟** پروتکل انتقال داده در وب. هر درخواست شامل:
+- Method (GET, POST, etc.)
+- URL (با query params مثل ?id=1)
+- Headers (اطلاعات اضافی مثل Authorization)
+- Body (داده اصلی، فقط در بعضی متدها)
+- **RESTful API:** سبک محبوب با HTTP methods برای CRUD (Create: POST, Read: GET, Update: PUT/PATCH, Delete: DELETE). Stateless و scalable.
+**نکته کلیدی:** GET body نداره (Idempotent – تکرار تغییری نمی‌ده). پارامترها در URL یا headers.
+## بخش ۲: HTTP Methods و جزئیات
+هر متد رفتار خاص داره. جدول زیر خلاصه می‌کنه (بله/نه یعنی معمولاً):
+| Method | Body داره؟ | Header داره؟ | Cookie داره؟ | توضیح |
+|--------|------------|--------------|--------------|-------|
+| GET | نه | بله | بله | خواندن داده، query در URL. |
+| POST | بله | بله | بله | ایجاد جدید، body برای data. |
+| PUT | بله | بله | بله | آپدیت کامل. |
+| PATCH | بله | بله | بله | آپدیت جزئی. |
+| DELETE | معمولاً نه | بله | بله | حذف. |
+| HEAD | نه | بله | بله | فقط headers پاسخ. |
+| OPTIONS | نه | بله | بله | چک متدهای مجاز (برای CORS). |
+| TRACE | نه | بله | بله | debug. |
+## بخش ۳: پارامترها و Binding در ASP.NET Core
+- انواع پارامتر: Query (در URL), Route (در path), Body (در بدنه), Header, Form.
+- در ASP.NET Core: از attributes مثل [FromQuery], [FromBody]. مثال:
+```csharp
+[HttpGet("users/{id}")]
+public IActionResult Get([FromRoute] int id, [FromQuery] string filter, [FromBody] FilterModel? body = null) { ... } // Body در GET ignore می‌شه
+```
+## بخش ۴: Postman و ابزارهای تست
+Postman برای تست API: Headers (مثل Content-Length:0), Body (حالت‌ها: form-data, raw JSON), Params, Auth. مثال: برای POST، body JSON بذار و Content-Type: application/json.
+## بخش ۵: WebAssembly (WASM) و SSR از نگاه فرانت‌اند
+- **WASM:** کد باینری در مرورگر برای سرعت بالا (مثل Blazor در .NET). با API: از HttpClient برای کال، کوکی‌ها با withCredentials.
+- **SSR:** رندر سمت سرور (مثل Next.js). با API: کال مستقیم بدون CORS مسئله. Hybrid: SSR + CSR.
+- **از نگاه Angular (v21+):** HttpClient برای کال، interceptors برای auth/cookie. Signals برای reactive، hybrid rendering با Universal.
+## بخش ۶: کوکی‌ها و مدیریت
+کوکی‌ها: ذخیره در مرورگر، ارسال در headers. انواع: HttpOnly, Secure. در ASP.NET: Response.Cookies.Append. در فرانت: document.cookie.
+## بخش ۷: CORS (Cross-Origin Resource Sharing)
+تو گفتی CORS رو توضیح بدم، پس بخش جداگانه ساختم.
+- **CORS چیه؟** مکانیزم امنیتی مرورگرها برای جلوگیری از درخواست‌های cross-origin (دامنه متفاوت). مثلاً اگر سایت example.com بخواد به api.other.com درخواست بده، بدون CORS اجازه نمی‌ده (برای جلوگیری از حملات مثل CSRF).
+- **چطور کار می‌کنه؟**
+- **Simple Requests:** (GET/HEAD/POST با headers استاندارد) – سرور باید header Access-Control-Allow-Origin: * (یا دامنه خاص) برگردونه.
+- **Preflight Requests:** برای متدهای پیچیده (مثل PUT با custom headers)، مرورگر اول OPTIONS می‌فرسته تا چک کنه (Access-Control-Allow-Methods, Allow-Headers).
+- **Headers کلیدی:**
+- Access-Control-Allow-Origin: دامنه مجاز (یا *).
+- Access-Control-Allow-Credentials: true برای cookie/auth.
+- Access-Control-Allow-Methods: GET, POST, etc.
+- Access-Control-Max-Age: زمان کش preflight.
+- **در ASP.NET Core:** از middleware:
+```csharp
+app.UseCors(builder => builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+```
+- نکته: * با credentials کار نمی‌کنه – دامنه خاص بذار.
+- **در Angular/فرانت:** withCredentials: true در HttpClient برای cookie.
+- **مشکلات رایج:** ۴۰۳ Forbidden اگر CORS ست نباشه. برای امنیت، origins رو محدود کن.
+- **جایگزین‌ها:** JSONP (قدیمی، insecure)، Proxy (کال از سرور خودت).
+## بخش ۸: WebSocket و ارتباطات Real-Time
+تو گفتی راجب سوکت صحبت کن، پس عمیق‌تر توضیح می‌دم (قبلاً در انواع API مختصر بود).
+- **WebSocket چیه؟** پروتکل full-duplex (دوطرفه همزمان) برای ارتباطات persistent real-time. از HTTP upgrade می‌شه (دست‌دهی اولیه با HTTP، بعد WebSocket).
+- **تفاوت با HTTP:** HTTP request-responseه (polling نیاز به چک مداوم)، WebSocket connection باز نگه می‌داره – کم overhead برای real-time.
+- **چطور کار می‌کنه؟**
+۱. کلاینت درخواست upgrade می‌فرسته (header: Upgrade: websocket).
+۲. سرور ۱۰۱ Switching Protocols برمی‌گردونه.
+۳. حالا frameها (message, ping/pong برای alive) ردوبدل می‌شن.
+- **انواع پیام:** Text (UTF-8), Binary (برای فایل/تصویر), Control (close, ping).
+- **در ASP.NET Core:** از WebSockets middleware:
+```csharp
+if (context.WebSockets.IsWebSocketRequest) {
+var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+await Echo(webSocket); // handle messages
+}
+```
+- **در Angular:** از WebSocket API:
+```typescript
+const socket = new WebSocket('wss://example.com');
+socket.onmessage = (event) => console.log(event.data);
+socket.send('Hello');
+```
+- **مزایا:** Low latency، bidirectional، efficient برای chat/live data.
+- **معایب:** Stateful (سخت scale)، fallback به polling اگر fail بشه.
+- **Use Cases:** Chat apps (مثل WhatsApp web), live trading, collaborative editing (Google Docs).
+- **امنیت:** همیشه wss:// (با TLS)، authenticate با token در handshake.
+- **جایگزین‌ها:** SSE (یک‌طرفه push), Long Polling (HTTP اما باز نگه داشتن).
+## بخش ۹: وب‌هوک‌ها (Webhooks)
+- Push notifications event-driven. کلاینت URL ثبت می‌کنه، سرور POST می‌فرسته وقتی event رخ می‌ده.
+- انواع: Simple, Signed, Retry-enabled.
+- در ASP.NET/Angular: Controller برای receive, libraries برای send.
+## بخش ۱۰: انواع APIها و Architectures
+جدول انواع (با WebSocket و GraphQL):
+| نوع | توضیح | پروتکل | Use Cases |
+|-----|-------|---------|-----------|
+| REST | Resource-based | HTTP | عمومی |
+| SOAP | Message-based XML | HTTP/TCP | Enterprise |
+| GraphQL | Query language | HTTP | Efficient fetching |
+| gRPC | High-perf RPC | HTTP/2 | Microservices |
+| WebSocket | Real-time bidirectional | WebSocket | Chat/live |
+| SSE | Unidirectional push | HTTP | Updates |
+| Webhooks | Event push | HTTP POST | Notifications |
+| RPC | Function-like | مختلف | Internal |
+- Hybrid: ترکیب REST + WebSocket.
+## بخش ۱۱: امنیت APIها
+- Auth: API Keys, OAuth, JWT.
+- Authorization: RBAC/ABAC.
+- تهدیدها: Injection, BOLA, Rate Limiting.
+- CORS: بالا توضیح دادم.
+- Gateway: برای central security.
+## بخش ۱۲: بهترین Practices و مدیریت
+- Design: Versioning, Pagination, Error Handling.
+- Docs: OpenAPI.
+- Testing: Postman.
+- Monitoring: Prometheus.
+- Lifecycle: Design to Retire.
+## بخش ۱۳: روندهای پیشرفته API در ۲۰۲۶
+- AI-Driven: APIs با generative models (مثل auto-query optimization).
+- Edge Computing: APIs نزدیک کاربر برای latency کم.
+- Serverless: FaaS با webhooks.
+- Hyper-Personalization: GraphQL با user context.
+- Challenges: Scalability, Privacy (GDPR compliance).
